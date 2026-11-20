@@ -8,7 +8,7 @@
 
 | | |
 |---|---|
-| Автор | Имя Фамилия |
+| Автор | [Aizenrix](https://github.com/Aizenrix) |
 | Группа | |
 | Курс | 2026/2027 |
 | Стек | React 19, TypeScript, Vite, PocketBase, n8n |
@@ -20,7 +20,8 @@
 
 | Работа | Что умеет |
 |---|---|
-| | |
+| [Модуль 1. Доска заявок в общежитие](projects/p1-obshchezhitie/) | Форма, статусы, сохранение в браузере и уведомления в Telegram. |
+| [Модуль 2. Доска заявок с базой](projects/p2-obshchezhitie/) | PocketBase, обновления в реальном времени, ИИ-диспетчер и кнопка «Взять». |
 
 ## Структура
 
@@ -37,11 +38,13 @@ react-kurs/
 ## Как запустить
 
 ```bash
-git clone https://github.com/<логин>/react-kurs.git
-cd react-kurs/zayavki
+git clone https://github.com/Aizenrix/angular.git
+cd angular/projects/p1-obshchezhitie
 npm install
 npm run dev
 ```
+
+Для уведомлений и запуска второго модуля используйте инструкции в README соответствующего проекта.
 
 ## Материалы курса
 

@@ -1,0 +1,456 @@
+{
+  "name": "Кнопка «Взять» — общежитие",
+  "nodes": [
+    {
+      "id": "be927d54-d876-482e-8ed6-5767684eb267",
+      "name": "Каждые 10 секунд",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 10
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "e393c5cf-70e3-41bb-b38b-d827a54f6ebb",
+      "name": "Нажатия",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        210,
+        0
+      ],
+      "parameters": {
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_TOKEN }}/getUpdates",
+        "method": "POST",
+        "options": {
+          "timeout": 4500
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { timeout: 0, limit: 1, allowed_updates: ['callback_query'] } }}"
+      }
+    },
+    {
+      "id": "6ddcb310-79a7-424d-8e6e-f5d5291b1c19",
+      "name": "По одному",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        420,
+        0
+      ],
+      "parameters": {
+        "fieldToSplitOut": "result",
+        "options": {}
+      }
+    },
+    {
+      "id": "1418997a-4b93-446d-9108-3e6a7ce86d00",
+      "name": "Кнопка этой доски",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        630,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "89d5260a-cc5b-4005-9f1a-d55bc56a679c",
+              "leftValue": "={{ /^dorm2:[a-z0-9]{15}$/.test($json.callback_query?.data ?? '') && String($json.callback_query?.message?.chat?.id ?? '') === String($env.TELEGRAM_CHAT_ID) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "1b66b997-fd2e-4c14-a627-2919dac6619b",
+      "name": "Кто нажал",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        860,
+        -120
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3c668556-7ad6-4e16-b885-49b4febdbe91",
+              "name": "id",
+              "value": "={{ $json.callback_query.data.slice(6) }}",
+              "type": "string"
+            },
+            {
+              "id": "c2c5fe24-6f73-47b9-83b0-1d52fad4578e",
+              "name": "queryId",
+              "value": "={{ $json.callback_query.id }}",
+              "type": "string"
+            },
+            {
+              "id": "a2324583-4897-498b-b56b-2bf7039ad32b",
+              "name": "chatId",
+              "value": "={{ $json.callback_query.message.chat.id }}",
+              "type": "number"
+            },
+            {
+              "id": "f6073c28-9a17-499d-8ba2-2a7d8457985f",
+              "name": "messageId",
+              "value": "={{ $json.callback_query.message.message_id }}",
+              "type": "number"
+            },
+            {
+              "id": "7a6e96f0-f2ce-49d0-8717-bd2e2c36c968",
+              "name": "text",
+              "value": "={{ $json.callback_query.message.text }}",
+              "type": "string"
+            },
+            {
+              "id": "0696629d-8f0a-44b8-8dac-080005d6594a",
+              "name": "master",
+              "value": "={{ [$json.callback_query.from.first_name, $json.callback_query.from.last_name].filter(Boolean).join(' ').slice(0,120) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "4272c06a-e20c-431b-b030-b93623be68cb",
+      "name": "Статус в базу",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1090,
+        -120
+      ],
+      "parameters": {
+        "url": "=http://pocketbase:8090/api/collections/obshchezhitie/records/{{ $json.id }}",
+        "method": "PATCH",
+        "options": {
+          "timeout": 4500,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { status: 'В работе', master: $json.master } }}"
+      }
+    },
+    {
+      "id": "c9e962c4-178c-4a4d-bd0f-47adb0affb40",
+      "name": "Взята сейчас",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        -120
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e9a1a21c-6906-4af3-94da-ed48b766d6ff",
+              "leftValue": "={{ $json.statusCode === 200 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "070202e5-a793-450a-8ec7-5f8d9fe30a35",
+      "name": "Ответ на нажатие",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1550,
+        -220
+      ],
+      "parameters": {
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $('Кто нажал').item.json.queryId }}",
+        "additionalFields": {
+          "text": "Заявка ваша"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "bb39b07b-ed80-4647-a030-0f9b7d08e0eb",
+      "name": "Обновить сообщение",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1780,
+        -220
+      ],
+      "parameters": {
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_TOKEN }}/editMessageText",
+        "method": "POST",
+        "options": {
+          "timeout": 4500
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: $('Кто нажал').item.json.chatId, message_id: $('Кто нажал').item.json.messageId, text: ($('Кто нажал').item.json.text.replace('Статус: Новая', 'Статус: В работе') + '\\n\\n✅ Взял: ' + $('Кто нажал').item.json.master).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'), parse_mode: 'HTML', reply_markup: { inline_keyboard: [] } } }}"
+      }
+    },
+    {
+      "id": "a735c0db-a98e-41c0-81ea-1e9dded3da36",
+      "name": "Заявка уже недоступна",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1550,
+        20
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "52a38c6d-e650-408a-88bb-b7c744e2df5b",
+              "leftValue": "={{ $json.statusCode === 404 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "99d87f33-5f1e-49eb-9229-22495c486036",
+      "name": "Ответ о недоступности",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1780,
+        20
+      ],
+      "parameters": {
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $('Кто нажал').item.json.queryId }}",
+        "additionalFields": {
+          "text": "Заявка уже взята или закрыта"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "89170e85-0c6a-4acb-bd00-291ebdbac80f",
+      "name": "Подтвердить получение",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2010,
+        120
+      ],
+      "parameters": {
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_TOKEN }}/getUpdates",
+        "method": "POST",
+        "options": {
+          "timeout": 4500
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { offset: $('По одному').first().json.update_id + 1, limit: 1, timeout: 0, allowed_updates: ['callback_query'] } }}"
+      }
+    }
+  ],
+  "connections": {
+    "Каждые 10 секунд": {
+      "main": [
+        [
+          {
+            "node": "Нажатия",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Нажатия": {
+      "main": [
+        [
+          {
+            "node": "По одному",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "По одному": {
+      "main": [
+        [
+          {
+            "node": "Кнопка этой доски",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Кнопка этой доски": {
+      "main": [
+        [
+          {
+            "node": "Кто нажал",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Подтвердить получение",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Кто нажал": {
+      "main": [
+        [
+          {
+            "node": "Статус в базу",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Статус в базу": {
+      "main": [
+        [
+          {
+            "node": "Взята сейчас",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Взята сейчас": {
+      "main": [
+        [
+          {
+            "node": "Ответ на нажатие",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Заявка уже недоступна",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ответ на нажатие": {
+      "main": [
+        [
+          {
+            "node": "Обновить сообщение",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Обновить сообщение": {
+      "main": [
+        [
+          {
+            "node": "Подтвердить получение",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Заявка уже недоступна": {
+      "main": [
+        [
+          {
+            "node": "Ответ о недоступности",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ответ о недоступности": {
+      "main": [
+        [
+          {
+            "node": "Подтвердить получение",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
